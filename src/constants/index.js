@@ -50,7 +50,10 @@ export const API_ENDPOINTS = {
 };
 
 // Add your API keys here
-
+export const API_KEYS = {
+  SPOONACULAR_API_KEY: '77632797ef4f47298cd76836fafad903', // Get from spoonacular.com/food-api
+CLAUDE_API_KEY: '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'
+};
 export default {
   MEAL_TYPES,
   MEAL_TYPE_OPTIONS,

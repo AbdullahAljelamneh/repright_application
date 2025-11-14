@@ -28,78 +28,86 @@ const GroceryListModal = ({ visible, onClose, weeklyMealPlan }) => {
       generateGroceryList();
     }
   }, [visible, weeklyMealPlan]);
-
-  const generateGroceryList = async () => {
+const generateGroceryList = async () => {
     setLoading(true);
     try {
-      // Collect all recipe IDs from the week
-      const recipeIds = [];
+      // Extract ingredients from all meals in the week
+      const allIngredients = [];
+      
       Object.values(weeklyMealPlan).forEach(day => {
         Object.values(day).forEach(meal => {
-          if (meal && meal.id) {
-            recipeIds.push(meal.id);
+          if (meal && meal.ingredients && meal.ingredients.length > 0) {
+            allIngredients.push(...meal.ingredients);
           }
         });
       });
 
-      if (recipeIds.length === 0) {
+      if (allIngredients.length === 0) {
+        setGroceryList({});
         setLoading(false);
         return;
       }
 
-      // Get shopping list from Spoonacular
-      const response = await axios.post(
-        `https://api.spoonacular.com/recipes/shoppingList/add`,
-        {
-          recipeIds: recipeIds.slice(0, 10), // Limit to 10 recipes
-          servings: 1,
-        },
-        {
-          params: {
-            apiKey: API_KEYS.SPOONACULAR_API_KEY,
-          },
-        }
-      );
-
-      // Organize by category
-      const organized = {};
-      
-      // Fallback: Create basic list from recipe titles
-      const categories = {
-        'Proteins': ['chicken', 'beef', 'pork', 'fish', 'salmon', 'turkey', 'tofu', 'eggs'],
-        'Vegetables': ['lettuce', 'tomato', 'onion', 'carrot', 'broccoli', 'spinach', 'pepper'],
-        'Fruits': ['apple', 'banana', 'orange', 'berry', 'strawberry', 'blueberry'],
-        'Grains': ['rice', 'pasta', 'bread', 'oats', 'quinoa'],
-        'Dairy': ['milk', 'cheese', 'yogurt', 'butter', 'cream'],
-        'Pantry': ['oil', 'salt', 'pepper', 'spices', 'sauce', 'vinegar'],
+      // Categorize ingredients by type
+      const categorized = {
+        'Proteins': [],
+        'Vegetables': [],
+        'Fruits': [],
+        'Grains & Carbs': [],
+        'Dairy & Eggs': [],
+        'Pantry Staples': [],
+        'Other': [],
       };
 
-      // Parse meal titles to extract ingredients
-      Object.values(weeklyMealPlan).forEach(day => {
-        Object.values(day).forEach(meal => {
-          if (meal && meal.title) {
-            const title = meal.title.toLowerCase();
-            Object.keys(categories).forEach(category => {
-              categories[category].forEach(ingredient => {
-                if (title.includes(ingredient)) {
-                  if (!organized[category]) organized[category] = [];
-                  const capitalizedIngredient = ingredient.charAt(0).toUpperCase() + ingredient.slice(1);
-                  if (!organized[category].includes(capitalizedIngredient)) {
-                    organized[category].push(capitalizedIngredient);
-                  }
-                }
-              });
-            });
-          }
-        });
+      allIngredients.forEach(ingredient => {
+        const lower = ingredient.toLowerCase();
+        
+        // Categorize based on keywords
+        if (lower.includes('chicken') || lower.includes('beef') || lower.includes('pork') || 
+            lower.includes('fish') || lower.includes('salmon') || lower.includes('turkey') || 
+            lower.includes('tofu') || lower.includes('meat')) {
+          categorized['Proteins'].push(ingredient);
+        } else if (lower.includes('lettuce') || lower.includes('tomato') || lower.includes('onion') || 
+                   lower.includes('carrot') || lower.includes('broccoli') || lower.includes('spinach') || 
+                   lower.includes('pepper') || lower.includes('cucumber') || lower.includes('vegetable') ||
+                   lower.includes('celery') || lower.includes('zucchini') || lower.includes('kale')) {
+          categorized['Vegetables'].push(ingredient);
+        } else if (lower.includes('apple') || lower.includes('banana') || lower.includes('orange') || 
+                   lower.includes('berry') || lower.includes('strawberry') || lower.includes('blueberry') ||
+                   lower.includes('grape') || lower.includes('fruit') || lower.includes('lemon') ||
+                   lower.includes('lime') || lower.includes('avocado')) {
+          categorized['Fruits'].push(ingredient);
+        } else if (lower.includes('rice') || lower.includes('pasta') || lower.includes('bread') || 
+                   lower.includes('oats') || lower.includes('quinoa') || lower.includes('flour') ||
+                   lower.includes('tortilla') || lower.includes('noodle') || lower.includes('cereal')) {
+          categorized['Grains & Carbs'].push(ingredient);
+        } else if (lower.includes('milk') || lower.includes('cheese') || lower.includes('yogurt') || 
+                   lower.includes('butter') || lower.includes('cream') || lower.includes('egg')) {
+          categorized['Dairy & Eggs'].push(ingredient);
+        } else if (lower.includes('oil') || lower.includes('salt') || lower.includes('pepper') || 
+                   lower.includes('spice') || lower.includes('sauce') || lower.includes('vinegar') ||
+                   lower.includes('sugar') || lower.includes('honey') || lower.includes('garlic') ||
+                   lower.includes('seasoning')) {
+          categorized['Pantry Staples'].push(ingredient);
+        } else {
+          categorized['Other'].push(ingredient);
+        }
       });
 
-      setGroceryList(organized);
+      // Remove duplicates from each category
+      const deduped = {};
+      Object.keys(categorized).forEach(category => {
+        const unique = [...new Set(categorized[category])];
+        if (unique.length > 0) {
+          deduped[category] = unique;
+        }
+      });
+
+      setGroceryList(deduped);
     } catch (error) {
       console.error('Error generating grocery list:', error);
-      // Create fallback list
       setGroceryList({
-        'Check your meal plan': ['Review meals for specific ingredients'],
+        'Error': ['Could not generate grocery list. Please try again.'],
       });
     } finally {
       setLoading(false);

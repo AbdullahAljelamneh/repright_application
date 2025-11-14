@@ -25,6 +25,33 @@ import MealPreferencesModal from '../../components/modals/MealPreferencesModal';
 import GroceryListModal from '../../components/modals/GroceryListModal';
 import MealDetailModal from '../../components/modals/MealDetailModal';
 
+// TEST FUNCTION - Remove after testing
+  const testClaudeAPI = async () => {
+    try {
+      console.log('Testing Claude API with key:', API_KEYS.CLAUDE_API_KEY.substring(0, 15) + '...');
+      
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': API_KEYS.CLAUDE_API_KEY,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 100,
+          messages: [{ role: 'user', content: 'Say hello' }]
+        })
+      });
+
+      const data = await response.json();
+      console.log('API Test Result:', data);
+      Alert.alert('API Test', JSON.stringify(data, null, 2).substring(0, 200));
+    } catch (error) {
+      console.error('API Test Error:', error);
+      Alert.alert('API Test Failed', error.message);
+    }
+  };
 const DAYS_OF_WEEK = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const MEAL_TYPES = ['Breakfast', 'Lunch', 'Dinner', 'Snacks'];
 
@@ -124,41 +151,11 @@ const DietScreen = () => {
 
  // Generate meal using Claude AI
   const generateMealWithClaude = async (mealType, targetCalories, diet, cuisines, allergies, budget, dayIndex) => {
+// TEST FUNCTION - Remove after testing
+  const testClaudeAPI = async () => {
     try {
-      // Pick a random cuisine
-      const cuisine = cuisines[Math.floor(Math.random() * cuisines.length)];
+      console.log('Testing Claude API with key:', API_KEYS.CLAUDE_API_KEY.substring(0, 15) + '...');
       
-      // Build the prompt for Claude
-      const prompt = `Generate a healthy ${mealType.toLowerCase()} recipe with these requirements:
-
-- Cuisine: ${cuisine}
-- Diet type: ${diet}
-- Target calories: ${targetCalories}
-- Budget: ${budget}
-- Allergies to avoid: ${allergies.length > 0 ? allergies.join(', ') : 'none'}
-- Make it different from typical ${mealType.toLowerCase()} meals
-
-Return ONLY valid JSON in this exact format (no markdown, no explanations):
-{
-  "title": "Recipe name",
-  "calories": ${targetCalories},
-  "protein": 25,
-  "carbs": 45,
-  "fat": 15,
-  "servings": 1,
-  "readyInMinutes": 30,
-  "summary": "Brief description of the dish",
-  "ingredients": [
-    "ingredient 1 with amount",
-    "ingredient 2 with amount"
-  ],
-  "instructions": [
-    "Step 1",
-    "Step 2"
-  ]
-}`;
-
-      // Call Claude API
       const response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
@@ -167,82 +164,95 @@ Return ONLY valid JSON in this exact format (no markdown, no explanations):
           'anthropic-version': '2023-06-01',
         },
         body: JSON.stringify({
-          model: 'claude-3-5-sonnet-20241022',
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 100,
+          messages: [{ role: 'user', content: 'Say hello' }]
+        })
+      });
+
+      const data = await response.json();
+      console.log('API Test Result:', data);
+      Alert.alert('API Test', JSON.stringify(data, null, 2).substring(0, 200));
+    } catch (error) {
+      console.error('API Test Error:', error);
+      Alert.alert('API Test Failed', error.message);
+    }
+  };    try {
+      const cuisine = cuisines[Math.floor(Math.random() * cuisines.length)];
+      
+      const prompt = `Generate a healthy ${mealType.toLowerCase()} recipe with these requirements:
+- Cuisine: ${cuisine}
+- Diet: ${diet}
+- Calories: ${targetCalories}
+- Budget: ${budget}
+- Avoid: ${allergies.join(', ') || 'none'}
+
+Return ONLY valid JSON (no markdown):
+{
+  "title": "Recipe name",
+  "calories": ${targetCalories},
+  "protein": 30,
+  "carbs": 40,
+  "fat": 15,
+  "servings": 1,
+  "readyInMinutes": 25,
+  "summary": "Brief description",
+  "ingredients": ["ingredient 1", "ingredient 2"],
+  "instructions": ["Step 1", "Step 2"]
+}`;
+
+      console.log('Calling Claude API...');
+
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': API_KEYS.CLAUDE_API_KEY,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
           max_tokens: 1024,
-          messages: [
-            {
-              role: 'user',
-              content: prompt
-            }
-          ]
+          messages: [{ role: 'user', content: prompt }]
         })
       });
 
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Claude API Error:', response.status, errorText);
-        throw new Error(`API Error: ${response.status}`);
+        throw new Error(`API returned ${response.status}`);
       }
 
       const data = await response.json();
-      const contentText = data.content[0].text;
+      console.log('Claude response received');
       
-      // Parse the JSON response
-      let recipeData;
-      try {
-        // Remove markdown code blocks if present
-        const cleanedText = contentText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-        recipeData = JSON.parse(cleanedText);
-      } catch (parseError) {
-        console.error('Error parsing Claude response:', parseError);
-        console.error('Raw response:', contentText);
-        throw new Error('Invalid JSON from AI');
-      }
+      const contentText = data.content[0].text;
+      const cleanedText = contentText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      const recipeData = JSON.parse(cleanedText);
 
-      // Get appropriate image for the meal type
       const mealImages = {
-        'Breakfast': [
-          'https://images.unsplash.com/photo-1533089860892-a7c6f0a88666?w=400',
-          'https://images.unsplash.com/photo-1525351484163-7529414344d8?w=400',
-          'https://images.unsplash.com/photo-1484723091739-30a097e8f929?w=400',
-        ],
-        'Lunch': [
-          'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400',
-          'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400',
-          'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=400',
-        ],
-        'Dinner': [
-          'https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=400',
-          'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400',
-          'https://images.unsplash.com/photo-1432139555190-58524dae6a55?w=400',
-        ],
-        'Snacks': [
-          'https://images.unsplash.com/photo-1488477181946-6428a0291777?w=400',
-          'https://images.unsplash.com/photo-1568702846914-96b305d2aaeb?w=400',
-          'https://images.unsplash.com/photo-1599599810769-bcde5a160d32?w=400',
-        ],
+        'Breakfast': 'https://images.unsplash.com/photo-1533089860892-a7c6f0a88666?w=400',
+        'Lunch': 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400',
+        'Dinner': 'https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=400',
+        'Snacks': 'https://images.unsplash.com/photo-1488477181946-6428a0291777?w=400',
       };
-
-      const imageOptions = mealImages[mealType] || mealImages['Lunch'];
-      const selectedImage = imageOptions[dayIndex % imageOptions.length];
 
       return {
-        id: `claude-${mealType.toLowerCase()}-day${dayIndex}-${Date.now()}`,
+        id: `claude-${mealType.toLowerCase()}-${dayIndex}-${Date.now()}`,
         title: recipeData.title,
-        image: selectedImage,
+        image: mealImages[mealType],
         calories: recipeData.calories || targetCalories,
-        protein: recipeData.protein || Math.round(targetCalories * 0.25 / 4),
-        carbs: recipeData.carbs || Math.round(targetCalories * 0.50 / 4),
-        fat: recipeData.fat || Math.round(targetCalories * 0.25 / 9),
+        protein: recipeData.protein || 30,
+        carbs: recipeData.carbs || 40,
+        fat: recipeData.fat || 15,
         servings: recipeData.servings || 1,
-        readyInMinutes: recipeData.readyInMinutes || 30,
-        summary: recipeData.summary || 'Delicious and nutritious meal.',
+        readyInMinutes: recipeData.readyInMinutes || 25,
+        summary: recipeData.summary,
         ingredients: recipeData.ingredients || [],
         instructions: recipeData.instructions || [],
-        recipeUrl: null,
       };
     } catch (error) {
-      console.error('Error generating meal with Claude:', error);
+      console.error('Claude API Error:', error.message);
       throw error;
     }
   };
@@ -500,6 +510,10 @@ Return ONLY valid JSON in this exact format (no markdown, no explanations):
             onPress={generateWeeklyMealPlan}
             disabled={loading}
           >
+            <TouchableOpacity onPress={testClaudeAPI} style={styles.iconButton}>
+  <Text style={{fontSize: 10}}>TEST</Text>
+</TouchableOpacity>
+
             {loading ? (
               <ActivityIndicator size="small" color={colors.textWhite} />
             ) : (
