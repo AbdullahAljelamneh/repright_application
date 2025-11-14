@@ -1,0 +1,31 @@
+// src/navigation/navigationRef.js
+// Navigation reference for programmatic navigation outside of components
+
+import { createNavigationContainerRef } from '@react-navigation/native';
+
+export const navigationRef = createNavigationContainerRef();
+
+export function navigate(name, params) {
+  if (navigationRef.isReady()) {
+    navigationRef.navigate(name, params);
+  }
+}
+
+export function goBack() {
+  if (navigationRef.isReady() && navigationRef.canGoBack()) {
+    navigationRef.goBack();
+  }
+}
+
+export function reset(routes) {
+  if (navigationRef.isReady()) {
+    navigationRef.reset(routes);
+  }
+}
+
+export default {
+  navigationRef,
+  navigate,
+  goBack,
+  reset,
+};
